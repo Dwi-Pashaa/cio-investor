@@ -5,6 +5,7 @@ use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\InvestorController;
 use App\Http\Controllers\Pages\KategoriController;
 use App\Http\Controllers\Pages\RoleController;
+use App\Http\Controllers\Pages\TransferController;
 use App\Http\Controllers\Pages\TypeController;
 use App\Http\Controllers\Pages\UserController;
 use Illuminate\Support\Facades\Route;
@@ -80,4 +81,15 @@ Route::middleware(['auth'])->group(function() {
             Route::delete('/{id}/destroy', [InvestorController::class, 'destroy'])->name('investor.destroy')->can('hapus investor');
         });
     });
+
+    Route::prefix('transfer')->group(function() {
+        Route::get('/', [TransferController::class, 'index'])->name('transfer.index')->can('lihat transfer');
+        Route::get('/create', [TransferController::class, 'create'])->name('transfer.create')->can('buat transfer');
+        Route::post('/store', [TransferController::class, 'store'])->name('transfer.store')->can('buat transfer');
+        Route::get('/{id}/edit', [TransferController::class, 'edit'])->name('transfer.edit')->can('edit transfer');
+        Route::put('/{id}/update', [TransferController::class, 'update'])->name('transfer.update')->can('edit transfer');
+        Route::delete('/{id}/destroy', [TransferController::class, 'destroy'])->name('transfer.destroy')->can('hapus transfer');
+    });
 });
+
+Route::get('/fetchAndStoreBanks', [TransferController::class, 'fetchAndStoreBanks']);
