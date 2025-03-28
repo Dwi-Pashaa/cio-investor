@@ -1,7 +1,11 @@
 @extends('layouts.app')
 
 @section('title')
-    Transfer Pendapatan Bulanan
+    @if (!Auth::user()->hasRole('Investor'))
+        Transfer Pendapatan Bulanan
+    @else
+        History Pendapatan Bulanan
+    @endif
 @endsection
 
 @push('css')
@@ -13,14 +17,14 @@
 @include('components.alert.success')
 
 <div class="card">
-    <div class="card-header">
-        @can('buat transfer')
+    @can('buat transfer')
+        <div class="card-header">
             <a href="{{ route('transfer.create') }}" class="btn btn-primary">
                 <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
                 Tambah
             </a>
-        @endcan
-    </div>
+        </div>
+    @endcan
     <div class="card-body border-bottom py-3">
         <div class="d-flex">
             <div class="text-secondary">
@@ -55,7 +59,9 @@
                 <tr>
                     <th class="w-1">Code</th>
                     <th>Admin</th>
-                    <th>Investor</th>
+                    @if (!Auth::user()->hasRole('Investor'))
+                        <th>Investor</th>
+                    @endif
                     <th>Jumlah</th>
                     <th>Bank</th>
                     <th>Tanggal Transfer</th>
@@ -73,9 +79,11 @@
                         <td>
                             {{ $item->admin->name }}
                         </td>
-                        <td>
-                            {{ $item->investor->name }}
-                        </td>
+                        @if (!Auth::user()->hasRole('Investor'))
+                            <td>
+                                {{ $item->investor->name }}
+                            </td>
+                        @endif
                         <td>
                             Rp. {{ number_format($item->amount) }}
                         </td>
@@ -89,15 +97,41 @@
                             {{ $item->confirmation_date ? \Carbon\Carbon::parse($item->confirmation_date)->format('d/m/Y') : 'Belum Konfirmasi' }}
                         </td>
                         <td>
-                            {{ strtoupper($item->status) }}
+                            @if ($item->status === 'success')
+                                <span class="badge bg-success text-white">
+                                    {{ strtoupper($item->status) }}
+                                </span>
+                            @else
+                                <span class="badge bg-warning text-white">
+                                    {{ strtoupper($item->status) }}
+                                </span>
+                            @endif
                         </td>
                         <td>
                             @can('edit transfer')
-                                @if ($item->status == 'pending')
-                                    <a href="{{ route('transfer.edit', ['id' => $item->id]) }}" class="btn btn-outline-warning btn-md">
-                                        <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                        Edit
-                                    </a>
+                                @if (!Auth::user()->hasRole('Investor'))
+                                    @if ($item->status == 'pending')
+                                        <a href="{{ route('transfer.edit', ['id' => $item->id]) }}" class="btn btn-outline-warning btn-md">
+                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                            Edit
+                                        </a>
+                                    @endif
+                                @else
+                                    @if ($item->status == 'pending')
+                                        <form action="{{ route('transfer.confirmation', ['id' => $item->id]) }}" method="POST">
+                                            @csrf
+                                            @method("PUT")
+                                            <button type="submit" class="btn btn-outline-success btn-md">
+                                                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="currentColor"  class="icon icon-tabler icons-tabler-filled icon-tabler-copy-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18.333 6a3.667 3.667 0 0 1 3.667 3.667v8.666a3.667 3.667 0 0 1 -3.667 3.667h-8.666a3.667 3.667 0 0 1 -3.667 -3.667v-8.666a3.667 3.667 0 0 1 3.667 -3.667zm-3.333 -4c1.094 0 1.828 .533 2.374 1.514a1 1 0 1 1 -1.748 .972c-.221 -.398 -.342 -.486 -.626 -.486h-10c-.548 0 -1 .452 -1 1v9.998c0 .32 .154 .618 .407 .805l.1 .065a1 1 0 1 1 -.99 1.738a3 3 0 0 1 -1.517 -2.606v-10c0 -1.652 1.348 -3 3 -3zm1.293 9.293l-3.293 3.292l-1.293 -1.292a1 1 0 0 0 -1.414 1.414l2 2a1 1 0 0 0 1.414 0l4 -4a1 1 0 0 0 -1.414 -1.414" /></svg>
+                                                Konfirmasi
+                                            </button>
+                                        </form>
+                                    @else
+                                        <button disabled class="btn btn-outline-success btn-md">
+                                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="currentColor"  class="icon icon-tabler icons-tabler-filled icon-tabler-copy-check"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M18.333 6a3.667 3.667 0 0 1 3.667 3.667v8.666a3.667 3.667 0 0 1 -3.667 3.667h-8.666a3.667 3.667 0 0 1 -3.667 -3.667v-8.666a3.667 3.667 0 0 1 3.667 -3.667zm-3.333 -4c1.094 0 1.828 .533 2.374 1.514a1 1 0 1 1 -1.748 .972c-.221 -.398 -.342 -.486 -.626 -.486h-10c-.548 0 -1 .452 -1 1v9.998c0 .32 .154 .618 .407 .805l.1 .065a1 1 0 1 1 -.99 1.738a3 3 0 0 1 -1.517 -2.606v-10c0 -1.652 1.348 -3 3 -3zm1.293 9.293l-3.293 3.292l-1.293 -1.292a1 1 0 0 0 -1.414 1.414l2 2a1 1 0 0 0 1.414 0l4 -4a1 1 0 0 0 -1.414 -1.414" /></svg>
+                                            Selesai
+                                        </button>
+                                    @endif
                                 @endif
                             @endcan
                             @can('hapus transfer')

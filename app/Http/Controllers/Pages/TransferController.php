@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Bank;
 use App\Models\Transfer;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -20,7 +21,12 @@ class TransferController extends Controller
         $sort = $request->sort ?? 10;
         $search = $request->search ?? null;
 
+        $roles = Auth::user()->getRoleNames();
+
         $transfers = Transfer::with(['admin', 'investor.investor'])
+                                ->when($roles->contains('Investor'), function ($query) {
+                                    $query->where('investors_id', Auth::user()->id);
+                                })
                                 ->when($search, function ($query) use ($search) {
                                     $query->whereHas('investor', function ($q) use ($search) {
                                         $q->where('name', 'like', "%$search%");
@@ -125,6 +131,17 @@ class TransferController extends Controller
         $transfer->delete();
 
         return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Berhasil menghapus data.']);
+    }
+
+    public function confirmation(string $id) 
+    {
+        $transfers = Transfer::find($id);
+        $transfers->update([
+            "confirmation_date" => Carbon::now(),
+            "status" => "success"
+        ]);  
+
+        return back()->with('success', 'Berhasil konfirmasi transfer.');
     }
 
     public function fetchAndStoreBanks()

@@ -88,6 +88,7 @@ Route::middleware(['auth'])->group(function() {
         Route::post('/store', [TransferController::class, 'store'])->name('transfer.store')->can('buat transfer');
         Route::get('/{id}/edit', [TransferController::class, 'edit'])->name('transfer.edit')->can('edit transfer');
         Route::put('/{id}/update', [TransferController::class, 'update'])->name('transfer.update')->can('edit transfer');
+        Route::put('/{id}/confirmation', [TransferController::class, 'confirmation'])->name('transfer.confirmation')->can('edit transfer');
         Route::delete('/{id}/destroy', [TransferController::class, 'destroy'])->name('transfer.destroy')->can('hapus transfer');
     });
 });
