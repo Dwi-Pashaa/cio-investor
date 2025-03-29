@@ -29,6 +29,8 @@ class RoleSeeder extends Seeder
             'buat type investasi', 'lihat type investasi', 'ubah type investasi', 'hapus type investasi',
             'buat kategori investasi', 'lihat kategori investasi', 'ubah kategori investasi', 'hapus kategori investasi',
             'buat investor', 'lihat investor', 'ubah investor', 'hapus investor',
+            'buat transfer', 'lihat transfer', 'edit transfer', 'hapus transfer',
+            'download excel',
         ];
         
 
