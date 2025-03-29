@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Pages;
 
+use App\Exports\InvestorExport;
 use App\Http\Controllers\Controller;
 use App\Models\Investor;
 use App\Models\Kategori;
@@ -9,6 +10,7 @@ use App\Models\Type;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InvestorController extends Controller
 {
@@ -69,7 +71,8 @@ class InvestorController extends Controller
             "bussines_funds" => "required",
             "persentase" => "required",
             "password" => "required|min:8|confirmed",
-            "password_confirmation" => "required"
+            "password_confirmation" => "required",
+            "file" => "required"
         ]);
 
         $postUser = $request->only("username", "name", "email", "password");
@@ -82,11 +85,17 @@ class InvestorController extends Controller
         $persentase = str_replace(',', '.', str_replace('%', '', $request->persentase)); 
         $persentase = (float) $persentase / 100;
 
+        $file = $request->file('file');
+        $fileName = rand() . '.' . $file->getClientOriginalExtension();
+        $path = 'dokumen/';
+        $file->move(public_path($path), $fileName);
+
         $postInvestor = $request->only("categories_id", "types_id", "bussines_funds", "persentase");
         $postInvestor['persentase'] = $request->persentase;
         $postInvestor['bussines_funds'] = $bussines_funds;
         $postInvestor['monthly_income'] = $bussines_funds * $persentase;
         $postInvestor['users_id'] = $user->id;
+        $postInvestor['file'] = $path . $fileName;
 
         Investor::create($postInvestor);
 
@@ -120,6 +129,7 @@ class InvestorController extends Controller
             "bussines_funds" => "required",
             "persentase" => "required",
             "password" => "nullable|min:8|confirmed",
+            "file" => "required"
         ]);
 
         $postUser = $request->only("username", "name", "email");
@@ -138,10 +148,16 @@ class InvestorController extends Controller
         $persentase = str_replace(',', '.', str_replace('%', '', $request->persentase));
         $persentase = (float) $persentase / 100;
 
+        $file = $request->file('file');
+        $fileName = rand() . '.' . $file->getClientOriginalExtension();
+        $path = 'dokumen/';
+        $file->move(public_path($path), $fileName);
+
         $postInvestor = $request->only("categories_id", "types_id");
         $postInvestor['persentase'] = $request->persentase;
         $postInvestor['bussines_funds'] = $bussines_funds;
         $postInvestor['monthly_income'] = $bussines_funds * $persentase;
+        $postInvestor['file'] = $path . $fileName;
 
         if ($user->investor) {
             $user->investor->update($postInvestor);
@@ -168,5 +184,10 @@ class InvestorController extends Controller
         $user->delete();
 
         return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Berhasil menghapus data.']);
+    }
+
+    public function export()
+    {
+        return Excel::download(new InvestorExport, 'investor.xlsx');
     }
 }

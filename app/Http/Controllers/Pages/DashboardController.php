@@ -13,8 +13,8 @@ class DashboardController extends Controller
 {
     public function index() 
     {
-        $grafikPendapatan = User::role('Investor')->with(['investor'])->get();
-
+        $grafikPendapatan = User::role('Investor')->with(['investor', 'transfer'])->get();
+        
         $investorsCount = User::role('Investor')->count();
         $jumlahDanaInvestasi = Investor::sum('bussines_funds');
 

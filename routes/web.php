@@ -5,6 +5,7 @@ use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\InvestorController;
 use App\Http\Controllers\Pages\KategoriController;
 use App\Http\Controllers\Pages\RoleController;
+use App\Http\Controllers\Pages\SettingController;
 use App\Http\Controllers\Pages\TransferController;
 use App\Http\Controllers\Pages\TypeController;
 use App\Http\Controllers\Pages\UserController;
@@ -79,6 +80,7 @@ Route::middleware(['auth'])->group(function() {
             Route::get('/{id}/edit', [InvestorController::class, 'edit'])->name('investor.edit')->can('ubah investor');
             Route::put('/{id}/update', [InvestorController::class, 'update'])->name('investor.update')->can('ubah investor');
             Route::delete('/{id}/destroy', [InvestorController::class, 'destroy'])->name('investor.destroy')->can('hapus investor');
+            Route::get('/export', [InvestorController::class, 'export'])->name('investor.export')->can('download excel');
         });
     });
 
@@ -90,6 +92,12 @@ Route::middleware(['auth'])->group(function() {
         Route::put('/{id}/update', [TransferController::class, 'update'])->name('transfer.update')->can('edit transfer');
         Route::put('/{id}/confirmation', [TransferController::class, 'confirmation'])->name('transfer.confirmation')->can('edit transfer');
         Route::delete('/{id}/destroy', [TransferController::class, 'destroy'])->name('transfer.destroy')->can('hapus transfer');
+        Route::get('/export', [TransferController::class, 'export'])->name('transfer.export')->can('download excel');
+    });
+
+    Route::prefix('setting')->group(function() {
+        Route::get('/', [SettingController::class, 'index'])->name('setting')->middleware(['role:Admin']);
+        Route::post('/store', [SettingController::class, 'store'])->name('setting.store')->middleware(['role:Admin']);
     });
 });
 

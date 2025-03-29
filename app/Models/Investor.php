@@ -9,7 +9,7 @@ class Investor extends Model
 {
     use HasFactory;
     protected $table = 'investors';
-    protected $fillable = ['users_id', 'types_id', 'categories_id', 'bussines_funds', 'persentase', 'monthly_income'];
+    protected $fillable = ['users_id', 'types_id', 'categories_id', 'bussines_funds', 'persentase', 'monthly_income', 'file'];
 
     public function user() 
     {

@@ -17,7 +17,7 @@
             </a>
         </div>
         <div class="card-body">
-            <form action="{{ route('investor.update', ['id' => $investor->user->id]) }}" method="POST">
+            <form action="{{ route('investor.update', ['id' => $investor->user->id]) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method("PUT")
                 <div class="row">
@@ -102,6 +102,17 @@
                                 @endforeach
                             </select>
                             @error('types_id')
+                                <span class="invalid-feedback">
+                                    {{ $message }}
+                                </span>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-lg-12">
+                        <div class="form-group mb-3">
+                            <label for="" class="mb-2">Upload Dokumen</label>
+                            <input type="file" name="file" id="file" class="form-control @error('file') is-invalid @enderror">
+                            @error('file')
                                 <span class="invalid-feedback">
                                     {{ $message }}
                                 </span>

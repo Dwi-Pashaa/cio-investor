@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Pages;
 
+use App\Exports\TransferExport;
 use App\Http\Controllers\Controller;
 use App\Models\Bank;
+use App\Models\Setting;
 use App\Models\Transfer;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Maatwebsite\Excel\Facades\Excel;
 
 class TransferController extends Controller
 {
@@ -135,13 +138,37 @@ class TransferController extends Controller
 
     public function confirmation(string $id) 
     {
-        $transfers = Transfer::find($id);
+        $transfers = Transfer::with(['investor'])->find($id);
         $transfers->update([
             "confirmation_date" => Carbon::now(),
             "status" => "success"
         ]);  
 
-        return back()->with('success', 'Berhasil konfirmasi transfer.');
+        $phone = Setting::first();
+        
+        $phoneFormatted = preg_replace('/^0/', '62', $phone->telp);
+        $amount = number_format($transfers->amount);
+        $transferDate = Carbon::parse($transfers->transfer_date)->format('d/M/Y');
+        $confirmationDate = Carbon::parse($transfers->confirmation_date)->format('d/M/Y');
+
+        $message = "*Konfirmasi Transfer-{$transfers->code}\n*"
+                 . "*Nama Investor :* {$transfers->investor->name}\n"
+                 . "*Nominal :* {$amount}\n"
+                 . "*Bank :* {$transfers->payment_method}\n"
+                 . "*Tanggal Transfer :* {$transferDate}\n"
+                 . "*Tanggal Konfirmasi :* {$confirmationDate}\n";
+
+
+        $encodeMessage = urlencode($message);
+
+        $waLink = "https://wa.me/{$phoneFormatted}?text={$encodeMessage}";
+       
+        return redirect()->away($waLink)->with('success', 'Berhasil melaukan konfirmasi transfer pendapatan.');
+    }
+
+    public function export() 
+    {
+        return Excel::download(new TransferExport, 'transfer.xlsx');    
     }
 
     public function fetchAndStoreBanks()

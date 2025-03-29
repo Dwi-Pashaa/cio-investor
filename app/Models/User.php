@@ -49,4 +49,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Investor::class, 'users_id', 'id');
     }
+
+    public function transfer() 
+    {
+        return $this->hasMany(Transfer::class, 'investors_id', 'id');    
+    }
 }
