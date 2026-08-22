@@ -22,6 +22,7 @@ class User extends Authenticatable
         'username',
         'name',
         'email',
+        'phone',
         'password',
     ];
 
@@ -48,6 +49,21 @@ class User extends Authenticatable
     public function investor()
     {
         return $this->hasOne(Investor::class, 'users_id', 'id');
+    }
+
+    public function investors()
+    {
+        return $this->hasMany(Investor::class, 'users_id', 'id');
+    }
+
+    public function getTotalFundsAttribute()
+    {
+        return $this->investors->sum('bussines_funds');
+    }
+
+    public function getTotalMonthlyIncomeAttribute()
+    {
+        return $this->investors->sum('monthly_income');
     }
 
     public function transfer() 

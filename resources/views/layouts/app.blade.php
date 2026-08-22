@@ -15,9 +15,7 @@
 	<link href="{{asset('')}}css/tabler-vendors.min.css?1738096685" rel="stylesheet" />
 	<link href="{{asset('')}}css/tabler-marketing.min.css?1738096685" rel="stylesheet" />
 	<link href="{{asset('')}}css/demo.min.css?1738096685" rel="stylesheet" />
-	<style>
-		@import url('https://rsms.me/inter/inter.css');
-	</style>
+	<link href="{{asset('css/custom-theme.css')}}?v={{ time() }}" rel="stylesheet" />
 	@stack('css')
 </head>
 

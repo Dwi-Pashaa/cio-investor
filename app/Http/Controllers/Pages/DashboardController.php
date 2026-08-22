@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pages;
 
 use App\Http\Controllers\Controller;
 use App\Models\Investor;
+use App\Models\Setting;
 use App\Models\Transfer;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -13,12 +14,14 @@ class DashboardController extends Controller
 {
     public function index() 
     {
-        $grafikPendapatan = User::role('Investor')->with(['investor', 'transfer'])->get();
+        $grafikPendapatan = User::role('Investor')->with(['investors', 'transfer'])->get();
         
         $investorsCount = User::role('Investor')->count();
         $jumlahDanaInvestasi = Investor::sum('bussines_funds');
 
         $userId = Auth::user()->id;
+
+        $myInvestments = Investor::where('users_id', $userId)->with(['type', 'categorie'])->get();
 
         $dataPendapatan = Transfer::selectRaw('MONTH(transfer_date) as bulan, SUM(amount) as total_pendapatan')
             ->where('investors_id', $userId)
@@ -39,6 +42,8 @@ class DashboardController extends Controller
             ];
         });
 
-        return view("pages.dashboard", compact('grafikPendapatan', 'listPendapatanBulanan', 'jumlahDanaInvestasi', 'investorsCount'));
+        $dashboardColumns = Setting::dashboardColumns();
+
+        return view("pages.dashboard", compact('grafikPendapatan', 'listPendapatanBulanan', 'jumlahDanaInvestasi', 'investorsCount', 'myInvestments', 'dashboardColumns'));
     }
 }

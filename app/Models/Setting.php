@@ -9,5 +9,31 @@ class Setting extends Model
 {
     use HasFactory;
     protected $table = 'settings';
-    protected $fillable = ['telp'];
+    protected $fillable = ['telp', 'dashboard_columns'];
+    protected $casts = ['dashboard_columns' => 'array'];
+
+    /**
+     * Return the list of dashboard columns with their visibility.
+     * Falls back to all columns visible if not configured.
+     */
+    public static function dashboardColumns(): array
+    {
+        $setting = self::first();
+        $saved = $setting?->dashboard_columns ?? [];
+
+        $defaults = [
+            'dana_investasi'     => ['label' => 'Dana Investasi',     'visible' => true],
+            'persentase'         => ['label' => 'Persentase',         'visible' => true],
+            'nominal_pendapatan' => ['label' => 'Nominal Pendapatan', 'visible' => true],
+            'status_pembayaran'  => ['label' => 'Status Pembayaran',  'visible' => true],
+        ];
+
+        foreach ($defaults as $key => &$col) {
+            if (isset($saved[$key])) {
+                $col['visible'] = (bool) $saved[$key]['visible'];
+            }
+        }
+
+        return $defaults;
+    }
 }

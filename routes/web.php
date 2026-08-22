@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\InvestorController;
 use App\Http\Controllers\Pages\KategoriController;
+use App\Http\Controllers\Pages\PublicInvoiceController;
 use App\Http\Controllers\Pages\RoleController;
 use App\Http\Controllers\Pages\SettingController;
 use App\Http\Controllers\Pages\TransferController;
@@ -24,6 +25,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LoginController::class, 'index'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('post.login');
+
+// Public Dividend Invoice (No login required, protected by cryptographic token)
+Route::get('/show-dividen', [PublicInvoiceController::class, 'showDividen'])->name('public.dividen.show');
+Route::get('/show-dividen/pdf', [PublicInvoiceController::class, 'downloadPdf'])->name('public.dividen.pdf');
 
 Route::middleware(['auth'])->group(function() {
     // logout
@@ -80,6 +85,7 @@ Route::middleware(['auth'])->group(function() {
             Route::get('/{id}/edit', [InvestorController::class, 'edit'])->name('investor.edit')->can('ubah investor');
             Route::put('/{id}/update', [InvestorController::class, 'update'])->name('investor.update')->can('ubah investor');
             Route::delete('/{id}/destroy', [InvestorController::class, 'destroy'])->name('investor.destroy')->can('hapus investor');
+            Route::delete('/investment/{id}/destroy', [InvestorController::class, 'destroyInvestment'])->name('investor.investment.destroy')->can('hapus investor');
             Route::get('/export', [InvestorController::class, 'export'])->name('investor.export')->can('download excel');
         });
     });
@@ -91,6 +97,7 @@ Route::middleware(['auth'])->group(function() {
         Route::get('/{id}/edit', [TransferController::class, 'edit'])->name('transfer.edit')->can('edit transfer');
         Route::put('/{id}/update', [TransferController::class, 'update'])->name('transfer.update')->can('edit transfer');
         Route::put('/{id}/confirmation', [TransferController::class, 'confirmation'])->name('transfer.confirmation')->can('edit transfer');
+        Route::post('/{id}/resend-notification', [TransferController::class, 'resendNotification'])->name('transfer.resendNotification')->can('edit transfer');
         Route::delete('/{id}/destroy', [TransferController::class, 'destroy'])->name('transfer.destroy')->can('hapus transfer');
         Route::get('/export', [TransferController::class, 'export'])->name('transfer.export')->can('download excel');
     });
@@ -98,6 +105,7 @@ Route::middleware(['auth'])->group(function() {
     Route::prefix('setting')->group(function() {
         Route::get('/', [SettingController::class, 'index'])->name('setting')->middleware(['role:Admin']);
         Route::post('/store', [SettingController::class, 'store'])->name('setting.store')->middleware(['role:Admin']);
+        Route::post('/dashboard-columns', [SettingController::class, 'saveDashboardColumns'])->name('setting.dashboard.columns')->middleware(['role:Admin']);
     });
 });
 

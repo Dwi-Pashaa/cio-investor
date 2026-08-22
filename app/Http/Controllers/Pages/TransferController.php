@@ -8,6 +8,7 @@ use App\Models\Bank;
 use App\Models\Setting;
 use App\Models\Transfer;
 use App\Models\User;
+use App\Services\MekariQontakService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,11 +33,13 @@ class TransferController extends Controller
                                 })
                                 ->when($search, function ($query) use ($search) {
                                     $query->whereHas('investor', function ($q) use ($search) {
-                                        $q->where('name', 'like', "%$search%");
+                                        $q->where('name', 'like', "%$search%")
+                                          ->orWhere('phone', 'like', "%$search%");
                                     })
                                     ->orWhereHas('admin', function ($q) use ($search) {
                                         $q->where('name', 'like', "%$search%");
                                     })
+                                    ->orWhere('code', 'like', "%$search%")
                                     ->orWhere('amount', 'like', "%$search%") 
                                     ->orWhere('status', 'like', "%$search%")
                                     ->orWhere('payment_method', 'like', "%$search%");
@@ -52,7 +55,7 @@ class TransferController extends Controller
      */
     public function create()
     {
-        $investors = User::role('Investor')->get();
+        $investors = User::role('Investor')->with('investors')->orderBy('name', 'ASC')->get();
         $banks = Bank::orderBy('name', 'ASC')->get();
         return view("pages.transfer.create", compact("investors", "banks"));
     }
@@ -60,7 +63,7 @@ class TransferController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, MekariQontakService $qontakService)
     {
         $request->validate([
             "investors_id" => "required",
@@ -76,9 +79,24 @@ class TransferController extends Controller
         $post['admins_id'] = Auth::user()->id;
         $post['amount'] = $amount;
 
-        Transfer::create($post);
+        $transfer = Transfer::create($post);
 
-        return redirect()->route('transfer.index')->with('success', 'Berhasil melakukan transfer.');
+        // Kirim otomatis notifikasi pesan WhatsApp via Mekari Qontak Service
+        $qontakResult = null;
+        if ($request->boolean('send_wa', true)) {
+            $qontakResult = $qontakService->sendDividendNotification($transfer);
+        }
+
+        $successMsg = 'Berhasil melakukan transfer pendapatan.';
+        if ($qontakResult) {
+            if ($qontakResult['success']) {
+                $successMsg .= ' Pesan WhatsApp notifikasi dividen berhasil dikirim ke investor.';
+            } else {
+                $successMsg .= ' (Info WA: ' . $qontakResult['message'] . ')';
+            }
+        }
+
+        return redirect()->route('transfer.index')->with('success', $successMsg);
     }
 
     /**
@@ -86,10 +104,10 @@ class TransferController extends Controller
      */
     public function edit(string $id)
     {
-        $investors = User::role('Investor')->get();
+        $investors = User::role('Investor')->with('investors')->orderBy('name', 'ASC')->get();
         $banks = Bank::orderBy('name', 'ASC')->get();
 
-        $transfers = Transfer::find($id);
+        $transfers = Transfer::with('investor')->findOrFail($id);
 
         return view("pages.transfer.edit", compact("investors", "banks", "transfers"));
     }
@@ -116,7 +134,22 @@ class TransferController extends Controller
 
         $transfer->update($post);
 
-        return redirect()->route('transfer.index')->with('success', 'Berhasil melakukan transfer ulang.');
+        return redirect()->route('transfer.index')->with('success', 'Berhasil melakukan perbaruan data transfer.');
+    }
+
+    /**
+     * Kirim ulang notifikasi pesan WhatsApp dividen ke investor.
+     */
+    public function resendNotification(string $id, MekariQontakService $qontakService)
+    {
+        $transfer = Transfer::with('investor')->findOrFail($id);
+        $result = $qontakService->sendDividendNotification($transfer);
+
+        if ($result['success']) {
+            return back()->with('success', 'Pesan notifikasi WhatsApp berhasil dikirim ke ' . $transfer->investor->name);
+        }
+
+        return back()->with('error', 'Gagal mengirim pesan WhatsApp: ' . $result['message']);
     }
 
 

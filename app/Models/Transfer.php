@@ -21,6 +21,36 @@ class Transfer extends Model
         return $this->belongsTo(User::class, 'investors_id', 'id');    
     }
 
+    /**
+     * Generate secure HMAC token for accessing invoice publicly without login.
+     */
+    public function generateInvoiceToken(): string
+    {
+        $appKey = config('app.key') ?: 'cio-investor-default-secret-key';
+        return substr(hash_hmac('sha256', ($this->code ?? '') . '|' . $this->id . '|' . ($this->investors_id ?? ''), $appKey), 0, 32);
+    }
+
+    /**
+     * Validate an invoice token.
+     */
+    public function verifyInvoiceToken(?string $token): bool
+    {
+        if (empty($token)) {
+            return false;
+        }
+
+        return hash_equals($this->generateInvoiceToken(), $token);
+    }
+
+    /**
+     * Get full public invoice URL with transferCode and token.
+     */
+    public function getInvoiceUrl(): string
+    {
+        $token = $this->generateInvoiceToken();
+        return url('/show-dividen?transferCode=' . urlencode($this->code ?? ('TRF-' . $this->id)) . '&token=' . urlencode($token));
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -38,3 +68,4 @@ class Transfer extends Model
         });
     }
 }
+

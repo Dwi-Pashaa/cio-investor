@@ -1,133 +1,125 @@
 @extends('layouts.app')
 
 @section('title')
-    Data Level
+    Data Level / Role
 @endsection
 
-@push('css')
-    
-@endpush
-
 @section('content')
-<div class="card">
-    <div class="card-header">
-        <a href="javascript:void(0)" id="addBtn" data-bs-toggle="modal" data-bs-target="#modal-simple" class="btn btn-primary">
-            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-plus"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
-            Tambah
+<div class="card shadow-sm border-0">
+    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 py-3 px-4 bg-white border-bottom">
+        <div>
+            <h3 class="card-title fw-bold text-dark mb-1">Manajemen Level & Otorisasi</h3>
+            <div class="text-muted small">Kelola tingkatan role dan hak akses fitur pengguna</div>
+        </div>
+        <a href="javascript:void(0)" id="addBtn" data-bs-toggle="modal" data-bs-target="#modal-simple" class="btn btn-primary d-inline-flex align-items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+            Tambah Level
         </a>
     </div>
-    <div class="card-body border-bottom py-3">
-        <div class="d-flex">
-            <div class="text-secondary">
-                <div class="mx-2 d-inline-block">
-                    <select name="sort" id="sort" class="form-control">
-                        @php
-                            $opts = [
-                                10,25,50,100
-                            ];
-                        @endphp 
-                        @foreach ($opts as $opt)
-                            <option value="{{ $opt }}" {{ request('sort') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
-                        @endforeach
-                    </select>
-                </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="filter-toolbar">
+        <div class="row g-3 align-items-center justify-content-between">
+            <div class="col-auto d-flex align-items-center gap-2">
+                <span class="text-muted small fw-medium">Tampilkan:</span>
+                <select name="sort" id="sort" class="form-select form-select-sm" style="width: 75px;">
+                    @foreach ([10, 25, 50, 100] as $opt)
+                        <option value="{{ $opt }}" {{ request('sort') == $opt ? 'selected' : '' }}>{{ $opt }}</option>
+                    @endforeach
+                </select>
+                <span class="text-muted small fw-medium">data</span>
             </div>
-            <div class="ms-auto text-secondary">
-                <form>
-                    <div class="input-group mb-2">
-                        <input type="text" class="form-control" name="search" placeholder="Search for…">
-                        <button class="btn" type="submit">
-                            <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-search"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+            <div class="col-md-4 col-12">
+                <form method="GET">
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" name="search" value="{{ request('search') }}" placeholder="Cari nama level/role...">
+                        <button class="btn btn-primary px-3" type="submit">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
                         </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    <div class="table-responsive-lg">
-        <table class="table card-table table-vcenter text-nowrap datatable">
+
+    <div class="table-responsive">
+        <table class="table card-table table-vcenter">
             <thead>
                 <tr>
-                    <th class="w-1">No</th>
-                    <th>Nama Level</th>
-                    <th>Created</th>
-                    <th>Action</th>
+                    <th class="text-center" style="width: 60px;">No</th>
+                    <th>Nama Level / Role</th>
+                    <th>Tanggal Dibuat</th>
+                    <th class="text-center" style="width: 140px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($roles as $item)
                     <tr>
+                        <td class="text-center text-muted fw-semibold">
+                            {{ $loop->iteration + ($roles->currentPage() - 1) * $roles->perPage() }}
+                        </td>
                         <td>
-                            <span class="text-secondary">
-                                {{ $loop->iteration }}
+                            <span class="badge badge-soft-primary px-3 py-1 fw-bold fs-6">
+                                {{ $item->name }}
                             </span>
                         </td>
-                        <td>
-                            <a href="#" class="text-reset" tabindex="-1">
-                                {{ $item->name }}
-                            </a>
+                        <td class="text-muted small">
+                            {{ \Carbon\Carbon::parse($item->created_at)->format('d M Y, H:i') }}
                         </td>
-                        <td>
-                            {{ \Carbon\Carbon::parse($item->created_at)->format('d/m/Y H:i:s') }}
-                        </td>
-                        <td>
-                            <a href="{{ route('role.permission', ['id' => $item->id]) }}" class="btn btn-outline-info btn-md">
-                                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-lock-code"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-6a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 1 1 8 0v4" /><path d="M20 21l2 -2l-2 -2" /><path d="M17 17l-2 2l2 2" /></svg>
-                                Aksess
-                            </a>
-                            <a href="javascript:void(0)" onclick="return editModal('{{ $item->id }}')" class="btn btn-outline-warning btn-md">
-                                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-edit"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
-                                Edit
-                            </a>
-                            <a href="javascript:void(0)" onclick="return deleteType('{{ $item->id }}')" class="btn btn-outline-danger btn-md">
-                                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-trash"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
-                                Hapus
-                            </a>
+                        <td class="text-center">
+                            <div class="action-btn-group">
+                                <a href="{{ route('role.permission', ['id' => $item->id]) }}" class="btn-action btn-action-primary" title="Atur Hak Akses / Permission">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-6a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 1 1 8 0v4" /><path d="M20 21l2 -2l-2 -2" /><path d="M17 17l-2 2l2 2" /></svg>
+                                </a>
+                                <a href="javascript:void(0)" onclick="return editModal('{{ $item->id }}')" class="btn-action btn-action-warning" title="Edit Level">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" /><path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" /><path d="M16 5l3 3" /></svg>
+                                </a>
+                                <button type="button" onclick="return deleteType('{{ $item->id }}')" class="btn-action btn-action-danger" title="Hapus Level">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
+                                </button>
+                            </div>
                         </td> 
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center">Tidak Ada Data</td>
+                        <td colspan="4" class="text-center py-5 text-muted">Tidak Ada Data Level</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-    <div class="card-footer d-flex align-items-center">
-        <p class="m-0 text-secondary">
-            Showing <span>{{ $roles->firstItem() }}</span> 
-            to <span>{{ $roles->lastItem() }}</span> of
-            <span>{{ $roles->total() }}</span> entries
+
+    <div class="table-footer d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+        <p class="m-0 text-muted small">
+            Menampilkan <span class="fw-semibold text-dark">{{ $roles->firstItem() ?? 0 }}</span> - <span class="fw-semibold text-dark">{{ $roles->lastItem() ?? 0 }}</span> dari <span class="fw-semibold text-dark">{{ $roles->total() }}</span> total entri
         </p>
-        <ul class="pagination m-0 ms-auto">
+        <div class="m-0">
             {{ $roles->links() }}
-        </ul>
+        </div>
     </div>
 </div>
 @endsection
 
 @push('modal')
 <div class="modal modal-blur fade" id="modal-simple" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-1 modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Tambah Level</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                    aria-label="Close">
-                </button>
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header py-3 px-4 bg-white border-bottom">
+                <h5 class="modal-title fw-bold text-dark">Tambah Level</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <input type="hidden" name="type" id="type">
                 <input type="hidden" name="id" id="id">
-                <div class="form-group mb-3">
-                    <label for="name" class="mb-2">Nama Level</label>
-                    <input type="text" name="name" id="name" class="form-control">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nama Level <span class="text-danger">*</span></label>
+                    <input type="text" name="name" id="name" class="form-control" placeholder="Contoh: Manager / Staff">
                     <span class="invalid-feedback error_name"></span>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn me-auto" data-bs-dismiss="modal">Batal</button>
-                <button type="button" id="storeBtn" class="btn btn-primary">Simpan</button>
+            <div class="modal-footer py-3 px-4 bg-light-subtle">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" id="storeBtn" class="btn btn-primary px-4">Simpan</button>
             </div>
         </div>
     </div>
@@ -149,11 +141,7 @@
         position: "top-end",
         showConfirmButton: false,
         timer: 3000,
-        timerProgressBar: true,
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        }
+        timerProgressBar: true
     });
 
     $("#addBtn").click(function() {
@@ -205,7 +193,7 @@
 
                 setTimeout(() => {
                     window.location.reload();
-                }, 3000);
+                }, 1500);
             }
         }).fail(function(jqXHR, textStatus, errorThrown) {
             console.log("Error:", textStatus, errorThrown);
@@ -233,13 +221,13 @@
 
     function deleteType(id) {
         Swal.fire({
-            title: "Peringatan !",
-            text: "Anda yakin ingin menghapus data ini?",
+            title: "Konfirmasi Hapus",
+            text: "Apakah Anda yakin ingin menghapus level ini?",
             icon: "warning",
             showCancelButton: true,
-            confirmButtonColor: "#3085d6",
-            cancelButtonColor: "#d33",
-            confirmButtonText: "Hapus",
+            confirmButtonColor: "#1e40af",
+            cancelButtonColor: "#ef4444",
+            confirmButtonText: "Ya, Hapus",
             cancelButtonText: "Batal"
         }).then((result) => {
             if (result.isConfirmed) {
@@ -255,12 +243,12 @@
 
                         setTimeout(() => {
                             window.location.reload();
-                        }, 3000);
+                        }, 1500);
                     },
                     error: function(err) {
                         Toast.fire({
                             icon: "error",
-                            title: "Server Error"
+                            title: "Gagal menghapus data dari server."
                         });
                     }
                 })

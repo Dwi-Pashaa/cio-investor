@@ -31,4 +31,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'qontak' => [
+        'base_url' => env('QONTAK_BASE_URL', 'https://api.mekari.com/qontak/chat'),
+        'client_id' => env('QONTAK_CLIENT_ID'),
+        'client_secret' => env('QONTAK_CLIENT_SECRET'),
+        'channel_integration_id' => env('QONTAK_CHANNEL_INTEGRATION_ID'),
+        'template_id' => env('QONTAK_TEMPLATE_ID'),
+        'enabled' => env('QONTAK_ENABLED', true),
+        'oauth_url' => env('QONTAK_OAUTH_URL', 'https://api.mekari.com/oauth/token'),
+    ],
+
 ];

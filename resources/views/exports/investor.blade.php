@@ -5,6 +5,7 @@
             <th>Username</th>
             <th>Nama</th>
             <th>Email</th>
+            <th>No. Telepon</th>
             <th>Kategori Kerjasama</th>
             <th>Total Dana Usaha</th>
             <th>Pendapatan Bulanan</th>
@@ -28,6 +29,9 @@
                 </td>
                 <td>
                     {{ $item->user->email }}
+                </td>
+                <td>
+                    {{ $item->user->phone ?? '-' }}
                 </td>
                 <td>
                     {{ optional($item->categorie)->name ?? '-' }}

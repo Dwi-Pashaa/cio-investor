@@ -11,7 +11,8 @@ class SettingController extends Controller
     public function index() 
     {
         $settings = Setting::first();
-        return view("pages.setting.index", compact("settings"));    
+        $dashboardColumns = Setting::dashboardColumns();
+        return view("pages.setting.index", compact("settings", "dashboardColumns"));    
     }
 
     public function store(Request $request) 
@@ -25,6 +26,22 @@ class SettingController extends Controller
             ["telp" => $request->telp]
         );
 
-        return back()->with('success', 'Berhasil menyimpan setting.');
+        return back()->with('success', 'Berhasil menyimpan pengaturan kontak.');
+    }
+
+    public function saveDashboardColumns(Request $request)
+    {
+        $columns = [];
+        $allowedKeys = ['dana_investasi', 'persentase', 'nominal_pendapatan', 'status_pembayaran'];
+
+        foreach ($allowedKeys as $key) {
+            $columns[$key] = [
+                'visible' => $request->has("columns.$key") ? true : false
+            ];
+        }
+
+        Setting::updateOrCreate([], ['dashboard_columns' => $columns]);
+
+        return back()->with('success', 'Pengaturan kolom dashboard berhasil disimpan.');
     }
 }
