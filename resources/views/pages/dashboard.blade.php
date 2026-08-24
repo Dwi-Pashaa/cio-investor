@@ -155,6 +155,7 @@
                                 @if($dashboardColumns['nominal_pendapatan']['visible'])
                                     <th>Nominal Pendapatan</th>
                                 @endif
+                                <th class="text-center">Sisa Dividen</th>
                                 @if($dashboardColumns['status_pembayaran']['visible'])
                                     <th class="text-center" style="width: 170px;">Status Pembayaran</th>
                                 @endif
@@ -192,6 +193,20 @@
                                     $effectivePercentage = $investorTotalFunds > 0 
                                         ? round(($investorTotalIncome / $investorTotalFunds) * 100, 2)
                                         : 0;
+                                    $totalDividendPeriods = 0;
+                                    foreach ($dp->investors as $inv) {
+                                        if ($inv->first_dividend_at && $inv->last_dividend_at) {
+                                            $firstDiv = \Carbon\Carbon::parse($inv->first_dividend_at)->startOfDay();
+                                            $lastDiv = \Carbon\Carbon::parse($inv->last_dividend_at)->startOfDay();
+                                            if ($lastDiv->greaterThanOrEqualTo($firstDiv)) {
+                                                $totalDividendPeriods += (int) round($firstDiv->diffInMonths($lastDiv)) + 1;
+                                            }
+                                        }
+                                    }
+                                    $transferCount = $dp->transfer->where('status', 'success')->count();
+                                    $sisaDividen = $totalDividendPeriods > 0
+                                        ? max(0, $totalDividendPeriods - $transferCount)
+                                        : null;
                                 @endphp
                                 <tr>
                                     <td>
@@ -231,6 +246,17 @@
                                             </span>
                                         </td>
                                     @endif
+                                    <td class="text-center">
+                                        @if(!is_null($sisaDividen))
+                                            @if($sisaDividen > 0)
+                                                <span class="badge badge-soft-primary px-2.5 py-1 fw-bold fs-7">{{ $sisaDividen }}x Lagi</span>
+                                            @else
+                                                <span class="badge-status-success">Selesai</span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted small">-</span>
+                                        @endif
+                                    </td>
                                     @if($dashboardColumns['status_pembayaran']['visible'])
                                         <td class="text-center">
                                             @if ($sudahDibayar)
@@ -249,7 +275,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Belum ada data investor</td>
+                                    <td colspan="6" class="text-center text-muted py-4">Belum ada data investor</td>
                                 </tr>
                             @endforelse
                         </tbody>

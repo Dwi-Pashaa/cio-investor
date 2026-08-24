@@ -279,16 +279,43 @@
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 17l6 -6l4 4l8 -8" /><path d="M14 7l7 0l0 7" /></svg>
                                                     Bagi Hasil: <strong class="text-success">Rp {{ number_format($inv->monthly_income, 0, ',', '.') }} / bln</strong>
                                                 </span>
+                                                @if($inv->first_dividend_at && $inv->last_dividend_at)
+                                                    @php
+                                                        $firstDividend = \Carbon\Carbon::parse($inv->first_dividend_at)->startOfDay();
+                                                        $lastDividend = \Carbon\Carbon::parse($inv->last_dividend_at)->startOfDay();
+                                                        $dividendCount = $lastDividend->greaterThanOrEqualTo($firstDividend)
+                                                            ? (int) round($firstDividend->diffInMonths($lastDividend)) + 1
+                                                            : 0;
+                                                    @endphp
+                                                    @if($dividendCount > 0)
+                                                        <span>•</span>
+                                                        <span class="d-inline-flex align-items-center gap-1">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 7v5l3 3" /></svg>
+                                                            Dividen: <strong class="text-warning">{{ $dividendCount }}x</strong> ({{ $firstDividend->translatedFormat('M Y') }} s/d {{ $lastDividend->translatedFormat('M Y') }})
+                                                        </span>
+                                                    @endif
+                                                @endif
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="d-flex align-items-center gap-2">
-                                        @if($inv->file)
+                                        @php
+                                            $hasPdf = $inv->file && str_ends_with($inv->file, '.pdf') && file_exists(public_path($inv->file));
+                                        @endphp
+                                        @if($hasPdf)
                                             <a href="{{ asset($inv->file) }}" target="_blank" class="btn btn-sm btn-outline-primary py-1 px-2.5 d-inline-flex align-items-center gap-1 shadow-none" title="Lihat Berkas Perjanjian PDF">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 12h6" /><path d="M9 16h6" /></svg>
                                                 Dokumen PDF
                                             </a>
+                                        @else
+                                            @can('ubah investor')
+                                                <button type="button" class="btn btn-sm btn-outline-warning py-1 px-2.5 d-inline-flex align-items-center gap-1 shadow-none" onclick="document.getElementById('file-input-{{ $inv->id }}').click()" title="Upload Dokumen Perjanjian PDF">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 12l0 6" /><path d="M15 12l0 6" /><path d="M12 3l0 15" /><path d="M12 3l-4 4" /><path d="M12 3l4 4" /><path d="M5 21l14 0" /></svg>
+                                                    Upload PDF
+                                                </button>
+                                                <input type="file" id="file-input-{{ $inv->id }}" class="d-none" accept="application/pdf" onchange="uploadDocument({{ $inv->id }}, this)">
+                                            @endcan
                                         @endif
                                         @can('ubah investor')
                                             <a href="{{ route('investor.edit', ['id' => $inv->id]) }}" class="btn-action btn-action-warning" title="Edit Paket Investasi">
@@ -342,6 +369,44 @@
         timer: 3000,
         timerProgressBar: true
     });
+
+    function uploadDocument(id, input) {
+        if (!input.files || input.files.length === 0) return;
+
+        let formData = new FormData();
+        formData.append('file', input.files[0]);
+        formData.append('_method', 'POST');
+
+        $.ajax({
+            url: BASE + '/' + id + '/upload-document',
+            method: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            dataType: "json",
+            success: function(response) {
+                Toast.fire({
+                    icon: response.status,
+                    title: response.message
+                });
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(err) {
+                let message = "Gagal mengupload dokumen.";
+                if (err.responseJSON && err.responseJSON.message) {
+                    message = err.responseJSON.message;
+                }
+                Toast.fire({
+                    icon: "error",
+                    title: message
+                });
+                input.value = '';
+            }
+        });
+    }
 
     function deleteInvestment(id) {
         Swal.fire({

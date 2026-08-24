@@ -31,6 +31,7 @@ class RoleSeeder extends Seeder
             'buat investor', 'lihat investor', 'ubah investor', 'hapus investor',
             'buat transfer', 'lihat transfer', 'edit transfer', 'hapus transfer',
             'download excel',
+            'download pdf',
         ];
         
 

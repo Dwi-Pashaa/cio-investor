@@ -87,6 +87,8 @@ Route::middleware(['auth'])->group(function() {
             Route::delete('/{id}/destroy', [InvestorController::class, 'destroy'])->name('investor.destroy')->can('hapus investor');
             Route::delete('/investment/{id}/destroy', [InvestorController::class, 'destroyInvestment'])->name('investor.investment.destroy')->can('hapus investor');
             Route::get('/export', [InvestorController::class, 'export'])->name('investor.export')->can('download excel');
+            Route::get('/{id}/pdf-download', [InvestorController::class, 'pdfDownload'])->name('investor.pdf-download')->can('download pdf');
+            Route::post('/{id}/upload-document', [InvestorController::class, 'uploadDocument'])->name('investor.upload-document')->can('ubah investor');
         });
     });
 

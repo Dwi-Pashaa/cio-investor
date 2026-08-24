@@ -15,6 +15,7 @@ class PermissionSeeder extends Seeder
     {
         $permissions = [
             'download excel',
+            'download pdf',
         ];
 
         foreach ($permissions as $permission) {

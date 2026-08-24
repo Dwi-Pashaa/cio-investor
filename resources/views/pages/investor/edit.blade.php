@@ -257,6 +257,39 @@
                             <span class="invalid-feedback d-block">{{ $message }}</span>
                         @enderror
                     </div>
+
+                    <div class="col-md-4">
+                        <label class="field-label" for="first_money_received_at">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon text-primary"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /></svg>
+                            Tanggal Pertama Penerimaan Uang
+                        </label>
+                        <input type="date" name="first_money_received_at" id="first_money_received_at" class="form-control @error('first_money_received_at') is-invalid @enderror" value="{{ old('first_money_received_at', $investor->first_money_received_at) }}">
+                        @error('first_money_received_at')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="field-label" for="first_dividend_at">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon text-primary"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /></svg>
+                            Tanggal Pertama Kali Dapat Dividen
+                        </label>
+                        <input type="date" name="first_dividend_at" id="first_dividend_at" class="form-control @error('first_dividend_at') is-invalid @enderror" value="{{ old('first_dividend_at', $investor->first_dividend_at) }}">
+                        @error('first_dividend_at')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="field-label" for="last_dividend_at">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon text-primary"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5m0 2a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /></svg>
+                            Tanggal Terakhir Kali Dapat Dividen
+                        </label>
+                        <input type="date" name="last_dividend_at" id="last_dividend_at" class="form-control @error('last_dividend_at') is-invalid @enderror" value="{{ old('last_dividend_at', $investor->last_dividend_at) }}">
+                        @error('last_dividend_at')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
                 </div>
 
                 <!-- Live Calculation Preview Card -->
@@ -279,54 +312,115 @@
                 </div>
             </div>
 
-            <!-- Section 3: Berkas Perjanjian -->
+            <!-- Section 3: Berkas Penandatanganan & Para Pihak -->
             <div class="edit-section-card">
                 <div class="edit-section-header">
                     <div class="edit-section-badge">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z" /><path d="M9 15l2 2l4 -4" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01" /><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z" /><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" /><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" /></svg>
                     </div>
                     <div>
-                        <h5 class="fw-bold text-dark mb-0">3. Berkas Dokumen Perjanjian</h5>
-                        <div class="text-muted small">Upload berkas perjanjian baru atau pertahankan dokumen yang sudah ada</div>
+                        <h5 class="fw-bold text-dark mb-0">3. Bukti Foto Penandatanganan & Para Saksi</h5>
+                        <div class="text-muted small">Upload foto bukti penandatanganan baru dan data para penanda tangan serta saksi</div>
                     </div>
                 </div>
 
-                <div class="row g-3 align-items-center">
+                <div class="row g-3 mb-4">
                     <div class="col-md-7">
                         <div class="file-upload-dropzone" onclick="$('#file').trigger('click');">
                             <div class="avatar avatar-md rounded-circle bg-primary-subtle text-primary mb-2 mx-auto" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 9l5 -5l5 5" /><path d="M12 4l0 12" /></svg>
                             </div>
-                            <div class="fw-bold text-dark" id="file_display_name">Klik untuk Unggah Berkas Baru</div>
-                            <div class="text-muted small">Mendukung .PDF, .DOC, .DOCX (Biarkan kosong jika tidak diubah)</div>
+                            <div class="fw-bold text-dark" id="file_display_name">Klik untuk Unggah Foto Baru</div>
+                            <div class="text-muted small">Mendukung .JPG, .JPEG, .PNG, .WEBP (Biarkan kosong jika tidak diubah)</div>
                         </div>
-                        <input type="file" name="file" id="file" class="form-control d-none @error('file') is-invalid @enderror" accept=".pdf,.doc,.docx">
+                        <input type="file" name="file" id="file" class="form-control d-none @error('file') is-invalid @enderror" accept="image/jpeg,image/png,image/jpg,image/webp">
                         @error('file')
                             <span class="invalid-feedback d-block mt-2">{{ $message }}</span>
                         @enderror
                     </div>
                     <div class="col-md-5">
-                        <div class="p-3 bg-light-subtle border rounded-3">
-                            <div class="text-muted small fw-semibold mb-1">Status Dokumen Saat Ini:</div>
+                        <div class="p-3 bg-light-subtle border rounded-3 text-center">
+                            <div class="text-muted small fw-semibold mb-2">Foto Penandatanganan Saat Ini:</div>
                             @if($investor->file)
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <span class="badge bg-success-subtle text-success p-1 rounded-circle">✓</span>
-                                    <span class="fw-bold text-dark small text-truncate" style="max-width: 200px;">{{ basename($investor->file) }}</span>
+                                <div class="mb-2">
+                                    <img src="{{ asset($investor->file) }}" alt="Bukti Penandatanganan" class="img-fluid rounded-3 border shadow-xs" style="max-height: 140px; object-fit: contain;">
                                 </div>
-                                <div class="d-flex gap-2">
+                                <div class="d-flex justify-content-center gap-2">
                                     <a href="{{ asset($investor->file) }}" target="_blank" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>
-                                        Buka PDF
-                                    </a>
-                                    <a href="{{ asset($investor->file) }}" download class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
-                                        Unduh
+                                        Lihat Full Foto
                                     </a>
                                 </div>
                             @else
-                                <div class="text-muted small">Belum ada dokumen yang diunggah.</div>
+                                <div class="text-muted small py-3">Belum ada foto yang diunggah.</div>
                             @endif
                         </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="field-label" for="party_1_name">
+                            Pihak Pertama (Investor)
+                        </label>
+                        <input type="text" name="party_1_name" id="party_1_name" class="form-control @error('party_1_name') is-invalid @enderror" value="{{ old('party_1_name', $investor->party_1_name ?? $investor->user->name) }}">
+                        @error('party_1_name')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="field-label" for="party_2_name">
+                            Pihak Kedua (Pengelola)
+                        </label>
+                        <input type="text" name="party_2_name" id="party_2_name" class="form-control @error('party_2_name') is-invalid @enderror" value="{{ old('party_2_name', $investor->party_2_name ?? 'Cio Network') }}">
+                        @error('party_2_name')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="col-md-12">
+                        <label class="field-label" for="party_1_address">
+                            Alamat Investor (Sesuai KTP)
+                        </label>
+                        <textarea name="party_1_address" id="party_1_address" rows="2" class="form-control @error('party_1_address') is-invalid @enderror" placeholder="Alamat lengkap sesuai KTP">{{ old('party_1_address', $investor->party_1_address) }}</textarea>
+                        @error('party_1_address')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="field-label" for="party_1_bank">
+                            Bank
+                        </label>
+                        <input type="text" name="party_1_bank" id="party_1_bank" class="form-control @error('party_1_bank') is-invalid @enderror" value="{{ old('party_1_bank', $investor->party_1_bank) }}" placeholder="Contoh: BCA">
+                        @error('party_1_bank')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="field-label" for="party_1_account_number">
+                            No. Rekening
+                        </label>
+                        <input type="text" name="party_1_account_number" id="party_1_account_number" class="form-control @error('party_1_account_number') is-invalid @enderror" value="{{ old('party_1_account_number', $investor->party_1_account_number) }}" placeholder="Contoh: 2810732183">
+                        @error('party_1_account_number')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="field-label" for="witness_1_name">
+                            Nama Saksi Pihak Pertama
+                        </label>
+                        <input type="text" name="witness_1_name" id="witness_1_name" class="form-control @error('witness_1_name') is-invalid @enderror" value="{{ old('witness_1_name', $investor->witness_1_name) }}" placeholder="Contoh: Nama Saksi 1">
+                        @error('witness_1_name')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="field-label" for="witness_2_name">
+                            Nama Saksi Pihak Kedua
+                        </label>
+                        <input type="text" name="witness_2_name" id="witness_2_name" class="form-control @error('witness_2_name') is-invalid @enderror" value="{{ old('witness_2_name', $investor->witness_2_name) }}" placeholder="Contoh: Nama Saksi 2">
+                        @error('witness_2_name')
+                            <span class="invalid-feedback d-block">{{ $message }}</span>
+                        @enderror
                     </div>
                 </div>
             </div>
