@@ -9,7 +9,29 @@ class Transfer extends Model
 {
     use HasFactory;
     protected $table = 'transfers';
-    protected $fillable = ['code', 'admins_id', 'investors_id', 'amount', 'payment_method', 'transfer_date', 'confirmation_date', 'notes', 'status'];
+    protected $fillable = [
+        'code', 
+        'admins_id', 
+        'investors_id', 
+        'amount', 
+        'gross_amount', 
+        'admin_fee', 
+        'payment_method', 
+        'balance_type', 
+        'finance_reference_id', 
+        'xendit_disbursement_id', 
+        'xendit_status', 
+        'transfer_date', 
+        'confirmation_date', 
+        'notes', 
+        'status'
+    ];
+
+    protected $casts = [
+        'amount' => 'double',
+        'gross_amount' => 'double',
+        'admin_fee' => 'double',
+    ];
 
     public function admin() 
     {
@@ -48,7 +70,7 @@ class Transfer extends Model
     public function getInvoiceUrl(): string
     {
         $token = $this->generateInvoiceToken();
-        return url('/show-dividen?transferCode=' . urlencode($this->code ?? ('TRF-' . $this->id)) . '&token=' . urlencode($token));
+        return url('/show-dividen?transferCode=' . urlencode($this->code ?? ('INV-TRF-' . $this->id)) . '&token=' . urlencode($token));
     }
 
     protected static function boot()
@@ -56,15 +78,18 @@ class Transfer extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            $date = now()->format('Ymd');
-            $lastTransaction = self::whereDate('created_at', now()->toDateString())
-                ->orderBy('id', 'desc')
-                ->first();
+            if (empty($model->code)) {
+                $date = now()->format('Ymd');
+                $lastTransaction = self::whereDate('created_at', now()->toDateString())
+                    ->orderBy('id', 'desc')
+                    ->first();
 
-            $lastNumber = $lastTransaction ? (int)substr($lastTransaction->code, -4) : 0;
-            $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
+                $lastNumber = $lastTransaction ? (int)substr($lastTransaction->code, -4) : 0;
+                $newNumber = str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
 
-            $model->code = "TRF{$date}{$newNumber}";
+                // Standar prefix INV- untuk Multi-Web Central Router
+                $model->code = "INV-TRF{$date}{$newNumber}";
+            }
         });
     }
 }

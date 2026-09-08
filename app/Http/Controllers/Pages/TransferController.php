@@ -8,11 +8,14 @@ use App\Models\Bank;
 use App\Models\Setting;
 use App\Models\Transfer;
 use App\Models\User;
+use App\Services\CioFinanceService;
 use App\Services\MekariQontakService;
+use App\Services\XenditService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 class TransferController extends Controller
@@ -51,49 +54,225 @@ class TransferController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show the form for creating a new resource (3-Step Wizard).
      */
-    public function create()
+    public function create(CioFinanceService $financeService, XenditService $xenditService)
     {
-        $investors = User::role('Investor')->with('investors')->orderBy('name', 'ASC')->get();
-        $banks = Bank::orderBy('name', 'ASC')->get();
-        return view("pages.transfer.create", compact("investors", "banks"));
+        $investors = User::role('Investor')->with(['investors', 'investor'])->orderBy('name', 'ASC')->get();
+        $bankGroups = $xenditService->getAvailableBanksGrouped();
+        $settings = Setting::first();
+        $financeBalance = $financeService->getBalance(true);
+
+        return view("pages.transfer.create", compact("investors", "bankGroups", "settings", "financeBalance"));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created resource in storage with Finance CIO & Xendit integration.
      */
-    public function store(Request $request, MekariQontakService $qontakService)
-    {
+    public function store(
+        Request $request, 
+        CioFinanceService $financeService, 
+        XenditService $xenditService, 
+        MekariQontakService $qontakService
+    ) {
         $request->validate([
-            "investors_id" => "required",
-            "amount" => "required",
+            "balance_type"   => "required|in:manual,xendit",
+            "investors_id"   => "required|exists:users,id",
+            "amount"         => "required",
             "payment_method" => "required",
-            "transfer_date" => "required"
+            "transfer_date"  => "required|date",
         ]);
 
-        $post = $request->all();
+        $balanceType = strtolower($request->balance_type);
+        $investor = User::with(['investors', 'investor'])->findOrFail($request->investors_id);
+        $settings = Setting::first();
 
-        $amount = str_replace('.', '', $request->amount);
+        // Nominal gross dan potongan biaya admin otomatis dari pengaturan sistem
+        $grossAmount = (float) str_replace('.', '', $request->amount);
+        $adminFee    = (float) ($settings->admin_fee ?? 0);
+        $netAmount   = max(0, $grossAmount - $adminFee);
 
-        $post['admins_id'] = Auth::user()->id;
-        $post['amount'] = $amount;
-
-        $transfer = Transfer::create($post);
-
-        // Kirim otomatis notifikasi pesan WhatsApp via Mekari Qontak Service
-        $qontakResult = null;
-        if ($request->boolean('send_wa', true)) {
-            $qontakResult = $qontakService->sendDividendNotification($transfer);
+        if ($grossAmount <= 0) {
+            return back()->withErrors(['amount' => 'Nominal transfer harus lebih besar dari Rp 0.'])->withInput();
         }
 
-        $successMsg = 'Berhasil melakukan transfer pendapatan.';
-        if ($qontakResult) {
-            if ($qontakResult['success']) {
-                $successMsg .= ' Pesan WhatsApp notifikasi dividen berhasil dikirim ke investor.';
-            } else {
-                $successMsg .= ' (Info WA: ' . $qontakResult['message'] . ')';
+        // 1. Verifikasi Status Channel & Sisa Saldo Real-Time
+        $balanceInfo = $financeService->getBalance(true);
+        $balanceData = $balanceInfo['data'] ?? [];
+        $channelStatus = $balanceData['channel_status'] ?? ['manual' => false, 'xendit' => false];
+
+        $isChannelActive = (bool) ($channelStatus[$balanceType] ?? false);
+        if (!$isChannelActive) {
+            return back()->withErrors([
+                'balance_type' => 'Saluran Saldo ' . ucfirst($balanceType) . ' sedang dinonaktifkan oleh Admin Finance CIO. Silakan gunakan saluran saldo lainnya.'
+            ])->withInput();
+        }
+
+        $availableBalance = (float) ($balanceType === 'manual' ? ($balanceData['balance_manual'] ?? 0) : ($balanceData['balance_xendit'] ?? 0));
+        if ($grossAmount > $availableBalance) {
+            return back()->withErrors([
+                'amount' => 'Nominal transfer kotor (Rp ' . number_format($grossAmount, 0, ',', '.') . ') melebihi sisa Saldo ' . ucfirst($balanceType) . ' yang tersedia (Rp ' . number_format($availableBalance, 0, ',', '.') . ').'
+            ])->withInput();
+        }
+
+        // Generate Referensi dengan Standar Prefix INV-
+        $dateStr = now()->format('Ymd');
+        $randomSeq = str_pad((string) rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        $code = "INV-TRF{$dateStr}{$randomSeq}";
+        $financeRefId = "INV-DEDUCT-{$code}-" . time();
+
+        $description = "Bagi hasil dividen {$investor->name} [{$code}]";
+        $note = $request->notes ?: "Distribusi bagi hasil dividen periode " . Carbon::parse($request->transfer_date)->translatedFormat('F Y');
+
+        // 2. Eksekusi Berdasarkan Tipe Saldo
+        $xenditDisbursementId = null;
+        $xenditStatus = null;
+
+        if ($balanceType === 'manual') {
+            // ALUR SALDO MANUAL: Langsung potong saldo manual di Finance API
+            $deductResult = $financeService->deductBalance(
+                amount: $grossAmount,
+                balanceType: 'manual',
+                referenceId: $financeRefId,
+                description: $description,
+                category: 'Dividen',
+                note: $note
+            );
+
+            if (!$deductResult['success']) {
+                return back()->withErrors([
+                    'error' => 'Gagal memotong Saldo Manual pada Server Finance CIO: ' . $deductResult['message']
+                ])->withInput();
             }
+
+        } elseif ($balanceType === 'xendit') {
+            // ALUR SALDO XENDIT:
+            // Langkah 1: Potong Saldo Xendit di Finance API
+            $deductResult = $financeService->deductBalance(
+                amount: $grossAmount,
+                balanceType: 'xendit',
+                referenceId: $financeRefId,
+                description: $description,
+                category: 'Dividen',
+                note: $note
+            );
+
+            if (!$deductResult['success']) {
+                return back()->withErrors([
+                    'error' => 'Gagal memotong Saldo Xendit pada Server Finance CIO: ' . $deductResult['message']
+                ])->withInput();
+            }
+
+            // Langkah 2: Eksekusi Payout / Disbursement Xendit
+            $firstInvRecord = $investor->investors->first() ?? $investor->investor;
+            $bankAccount = $request->account_number ?: ($firstInvRecord->party_1_account_number ?? null);
+            $accountHolder = $firstInvRecord->party_1_name ?? $investor->name;
+
+            // Buat temporary transfer object untuk xendit service
+            $tempTransfer = new Transfer([
+                'id' => rand(1000, 9999),
+                'code' => $code,
+                'payment_method' => $request->payment_method,
+            ]);
+
+            $xenditResult = $xenditService->createPayout(
+                transfer: $tempTransfer,
+                investor: $investor,
+                netAmount: $netAmount,
+                bankCode: $request->payment_method,
+                accountNumber: $bankAccount,
+                accountHolderName: $accountHolder
+            );
+
+            if (!$xenditResult['status']) {
+                // KOMPENSASI AUTO-REFUND: Kembalikan saldo Xendit ke Finance API jika payout gagal
+                $refundRefId = "INV-REFUND-{$code}-" . time();
+                $refundResult = $financeService->refundBalance(
+                    amount: $grossAmount,
+                    balanceType: 'xendit',
+                    referenceId: $refundRefId,
+                    description: "Rollback kegagalan transfer Xendit untuk {$investor->name} [{$code}]",
+                    reason: $xenditResult['message']
+                );
+
+                $rollbackMsg = $refundResult['success'] 
+                    ? 'Saldo Xendit berhasil dikembalikan secara otomatis (Auto-Refund).' 
+                    : 'Peringatan: Gagal melakukan refund otomatis pada Finance API.';
+
+                return back()->withErrors([
+                    'error' => 'Transfer Xendit gagal: ' . $xenditResult['message'] . '. ' . $rollbackMsg
+                ])->withInput();
+            }
+
+            $xenditDisbursementId = $xenditResult['disbursement_id'] ?? null;
+            $xenditStatus = $xenditResult['data']['status'] ?? 'PENDING';
+        }
+
+        // Tentukan status awal & tanggal konfirmasi
+        $status = 'pending';
+        $confirmationDate = null;
+
+        if ($balanceType === 'manual') {
+            $status = 'success';
+            $confirmationDate = now();
+        } else {
+            // Jika mode simulasi (mock), langsung set success
+            if (!empty($xenditResult['is_simulated'])) {
+                $status = 'success';
+                $confirmationDate = now();
+                $xenditStatus = 'COMPLETED';
+            } else {
+                // Real Xendit API awal payout berstatus PENDING
+                $status = 'pending';
+                $confirmationDate = null;
+            }
+        }
+
+        // 3. Simpan Data Transfer ke Database
+        $transfer = Transfer::create([
+            'code'                   => $code,
+            'admins_id'              => Auth::id(),
+            'investors_id'           => $investor->id,
+            'amount'                 => $netAmount,       // Nominal bersih yang diterima investor
+            'gross_amount'           => $grossAmount,     // Nominal kotor dividen
+            'admin_fee'              => $adminFee,        // Biaya admin yang dipotong
+            'payment_method'         => $request->payment_method,
+            'balance_type'           => $balanceType,
+            'finance_reference_id'   => $financeRefId,
+            'xendit_disbursement_id' => $xenditDisbursementId,
+            'xendit_status'          => $xenditStatus,
+            'transfer_date'          => $request->transfer_date,
+            'confirmation_date'      => $confirmationDate,
+            'notes'                  => $note,
+            'status'                 => $status,
+        ]);
+
+        // 4. Catat Riwayat Transaksi Finansial ke Server Finance CIO (/api/v1/history)
+        try {
+            $financeService->recordTransferHistory($transfer);
+        } catch (\Throwable $e) {
+            Log::warning('Gagal mencatat log riwayat transfer ke Finance CIO: ' . $e->getMessage());
+        }
+
+        // 5. Kirim Notifikasi WhatsApp / Email otomatis
+        // Hanya dikirim instan jika transfer sudah berstatus success (transfer manual / simulasi).
+        // Untuk transfer Xendit asli (pending), notifikasi akan otomatis dikirim oleh Webhook Callback ketika payout COMPLETED.
+        $notifResult = null;
+        if ($status === 'success' && ($settings->notification_channel ?? 'whatsapp') !== 'none') {
+            $notifResult = $qontakService->dispatchNotification($transfer);
+        }
+
+        if ($status === 'pending') {
+            $successMsg = "Transfer dividen sebesar Rp " . number_format($netAmount, 0, ',', '.') . " berhasil diajukan ke Xendit (Status: PENDING). Pesan WhatsApp/Email ke investor akan otomatis terkirim segera setelah callback pembayaran berhasil diterima dari Xendit.";
+        } else {
+            $successMsg = "Transfer dividen sebesar Rp " . number_format($netAmount, 0, ',', '.') . " berhasil diproses (Sumber: Saldo " . ucfirst($balanceType) . "). Status: Lunas.";
+            if ($notifResult && !empty($notifResult['message'])) {
+                $successMsg .= " (" . $notifResult['message'] . ")";
+            }
+        }
+
+        if ($adminFee > 0) {
+            $successMsg .= " Potongan Biaya Admin: Rp " . number_format($adminFee, 0, ',', '.') . ".";
         }
 
         return redirect()->route('transfer.index')->with('success', $successMsg);
@@ -143,13 +322,13 @@ class TransferController extends Controller
     public function resendNotification(string $id, MekariQontakService $qontakService)
     {
         $transfer = Transfer::with('investor')->findOrFail($id);
-        $result = $qontakService->sendDividendNotification($transfer);
+        $result = $qontakService->dispatchNotification($transfer);
 
         if ($result['success']) {
-            return back()->with('success', 'Pesan notifikasi WhatsApp berhasil dikirim ke ' . $transfer->investor->name);
+            return back()->with('success', 'Notifikasi dividen berhasil dikirim ulang: ' . $result['message']);
         }
 
-        return back()->with('error', 'Gagal mengirim pesan WhatsApp: ' . $result['message']);
+        return back()->with('error', 'Gagal mengirim ulang notifikasi: ' . $result['message']);
     }
 
 
@@ -204,28 +383,19 @@ class TransferController extends Controller
         return Excel::download(new TransferExport, 'transfer.xlsx');    
     }
 
-    public function fetchAndStoreBanks()
+    public function fetchAndStoreBanks(XenditService $xenditService)
     {
-        $apiKey = "JDJ5JDEzJFlQSWRScWh4OER5cXo5eVNkNXZzZ3UwM3kzbmh6aDVRcU5nMWFtek1Wd1daaFB2NjNTeU1T";
-        $headers = [
-            'Accept' => 'application/json; charset=UTF-8',
-            'Authorization' => 'Basic ' . base64_encode($apiKey)
-        ];
+        $banks = $xenditService->getAllBanksFlat();
 
-        $response = Http::withHeaders($headers)->get('https://bigflip.id/big_sandbox_api/v2/general/banks');
-
-        if ($response->successful()) {
-            $banks = $response->json();
-
-            foreach ($banks as $bank) {
-                Bank::updateOrCreate(
-                    ['name' => $bank['name']] 
-                );
-            }
-
-            return response()->json(['message' => 'Data bank berhasil diperbarui!']);
+        foreach ($banks as $bank) {
+            Bank::updateOrCreate(
+                ['name' => $bank['name']]
+            );
         }
 
-        return response()->json(['error' => 'Gagal mengambil data bank'], 500);
+        return response()->json([
+            'message' => 'Data bank resmi Xendit berhasil disinkronkan ke database!',
+            'total' => count($banks)
+        ]);
     }
 }

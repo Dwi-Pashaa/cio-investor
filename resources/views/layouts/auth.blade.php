@@ -19,6 +19,10 @@
                 </a>
             </div>
 
+            @if (session()->has('success'))
+                @include('components.alert.success')
+            @endif
+
             @if (session()->has('error'))
                 @include('components.alert.danger')
             @endif

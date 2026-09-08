@@ -9,8 +9,18 @@ class Setting extends Model
 {
     use HasFactory;
     protected $table = 'settings';
-    protected $fillable = ['telp', 'dashboard_columns'];
-    protected $casts = ['dashboard_columns' => 'array'];
+    protected $fillable = [
+        'telp', 
+        'notification_channel', 
+        'admin_fee', 
+        'xendit_secret_key', 
+        'xendit_webhook_token', 
+        'dashboard_columns'
+    ];
+    protected $casts = [
+        'dashboard_columns' => 'array',
+        'admin_fee' => 'double',
+    ];
 
     /**
      * Return the list of dashboard columns with their visibility.

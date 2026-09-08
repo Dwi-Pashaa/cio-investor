@@ -29,6 +29,9 @@
                 <label class="form-label mb-0" for="password">
                     Password <span class="text-danger">*</span>
                 </label>
+                <a href="{{ route('password.request') }}" class="small text-primary text-decoration-none fw-semibold">
+                    Lupa Password?
+                </a>
             </div>
             <div class="input-icon">
                 <input type="password" name="password" id="password" class="form-control @error('password') is-invalid @enderror" placeholder="••••••••" required autocomplete="off" />

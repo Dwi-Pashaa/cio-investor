@@ -7,12 +7,20 @@ use App\Models\Investor;
 use App\Models\Setting;
 use App\Models\Transfer;
 use App\Models\User;
+use App\Services\CioFinanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
-    public function index() 
+    protected CioFinanceService $financeService;
+
+    public function __construct(CioFinanceService $financeService)
+    {
+        $this->financeService = $financeService;
+    }
+
+    public function index(Request $request) 
     {
         $grafikPendapatan = User::role('Investor')->with(['investors', 'transfer'])->get();
         
@@ -44,6 +52,19 @@ class DashboardController extends Controller
 
         $dashboardColumns = Setting::dashboardColumns();
 
-        return view("pages.dashboard", compact('grafikPendapatan', 'listPendapatanBulanan', 'jumlahDanaInvestasi', 'investorsCount', 'myInvestments', 'dashboardColumns'));
+        $freshBalance = $request->has('refresh_balance');
+        $financeBalance = Auth::user()->hasRole('Admin') 
+            ? $this->financeService->getBalance($freshBalance)
+            : ['status' => 'not_permitted', 'message' => 'Hanya admin yang memiliki izin.', 'data' => []];
+
+        return view("pages.dashboard", compact(
+            'grafikPendapatan',
+            'listPendapatanBulanan',
+            'jumlahDanaInvestasi',
+            'investorsCount',
+            'myInvestments',
+            'dashboardColumns',
+            'financeBalance'
+        ));
     }
 }

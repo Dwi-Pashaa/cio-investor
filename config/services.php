@@ -33,12 +33,23 @@ return [
 
     'qontak' => [
         'base_url' => env('QONTAK_BASE_URL', 'https://api.mekari.com/qontak/chat'),
+        'api_token' => env('QONTAK_API_TOKEN'),
         'client_id' => env('QONTAK_CLIENT_ID'),
         'client_secret' => env('QONTAK_CLIENT_SECRET'),
         'channel_integration_id' => env('QONTAK_CHANNEL_INTEGRATION_ID'),
         'template_id' => env('QONTAK_TEMPLATE_ID'),
+        'otp_template_id' => env('QONTAK_OTP_TEMPLATE_ID'),
         'enabled' => env('QONTAK_ENABLED', true),
         'oauth_url' => env('QONTAK_OAUTH_URL', 'https://api.mekari.com/oauth/token'),
     ],
 
+    'cio_finance' => [
+        'base_url'   => env('CIO_FINANCE_BASE_URL', 'http://localhost:8000'),
+        'client_id'  => env('CIO_FINANCE_CLIENT_ID'),
+        'key_id'     => env('CIO_FINANCE_KEY_ID'),
+        'secret_key' => env('CIO_FINANCE_SECRET_KEY'),
+        'timeout'    => env('CIO_FINANCE_TIMEOUT', 5),
+    ],
+
 ];
+

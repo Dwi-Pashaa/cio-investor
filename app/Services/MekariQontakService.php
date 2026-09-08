@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Transfer;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -16,6 +17,7 @@ class MekariQontakService
     protected ?string $clientSecret;
     protected ?string $channelIntegrationId;
     protected ?string $templateId;
+    protected ?string $otpTemplateId;
     protected bool $enabled;
 
     public function __construct()
@@ -26,6 +28,7 @@ class MekariQontakService
         $this->clientSecret         = config('services.qontak.client_secret');
         $this->channelIntegrationId = config('services.qontak.channel_integration_id');
         $this->templateId           = config('services.qontak.template_id');
+        $this->otpTemplateId        = config('services.qontak.otp_template_id') ?: env('QONTAK_OTP_TEMPLATE_ID');
         $this->enabled              = (bool) config('services.qontak.enabled', true);
     }
 
@@ -216,6 +219,87 @@ class MekariQontakService
         );
     }
 
+    /**
+     * Kirim notifikasi Email dividen ke investor.
+     *
+     * @param Transfer $transfer
+     * @return array{success: bool, message: string}
+     */
+    public function sendEmailDividendNotification(Transfer $transfer): array
+    {
+        $transfer->loadMissing(['investor', 'admin']);
+        $investor = $transfer->investor;
+
+        if (!$investor || empty($investor->email)) {
+            return [
+                'success' => false,
+                'message' => 'Email investor tidak ditemukan.',
+            ];
+        }
+
+        $formattedAmount = 'Rp ' . number_format($transfer->amount, 0, ',', '.');
+        $invoiceUrl      = $transfer->getInvoiceUrl();
+        $code            = $transfer->code ?: ('INV-TRF-' . $transfer->id);
+
+        try {
+            // Mengirim notifikasi email HTML responsif & profesional
+            \Illuminate\Support\Facades\Mail::to($investor->email)
+                ->send(new \App\Mail\DividendTransferMail($transfer));
+
+            Log::info("Notifikasi email HTML dividen berhasil dikirim ke {$investor->email}");
+
+            return [
+                'success' => true,
+                'message' => "Email notifikasi dividen berhasil dikirim ke {$investor->email}.",
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Gagal mengirim email dividen: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Gagal mengirim email dividen: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Dispatch notifikasi dividen sesuai saluran di Pengaturan Sistem (WhatsApp, Email, Both).
+     *
+     * @param Transfer    $transfer
+     * @param string|null $channelOverride 'whatsapp' | 'email' | 'both' | 'none'
+     * @return array{success: bool, message: string, wa?: mixed, email?: mixed}
+     */
+    public function dispatchNotification(Transfer $transfer, ?string $channelOverride = null): array
+    {
+        $setting = \App\Models\Setting::first();
+        $channel = $channelOverride ?? $setting?->notification_channel ?? 'whatsapp';
+
+        if ($channel === 'none') {
+            return ['success' => true, 'message' => 'Notifikasi dinonaktifkan di pengaturan sistem.'];
+        }
+
+        $results = [];
+        $messages = [];
+
+        if (in_array($channel, ['whatsapp', 'both'])) {
+            $waResult = $this->sendDividendNotification($transfer);
+            $results['wa'] = $waResult;
+            $messages[] = $waResult['message'];
+        }
+
+        if (in_array($channel, ['email', 'both'])) {
+            $emailResult = $this->sendEmailDividendNotification($transfer);
+            $results['email'] = $emailResult;
+            $messages[] = $emailResult['message'];
+        }
+
+        return [
+            'success'  => true,
+            'message'  => implode(' | ', $messages),
+            'channels' => $results,
+        ];
+    }
+
     // -------------------------------------------------------------------------
     // Core: Kirim Template WA via Mekari Qontak Direct Broadcast API
     // -------------------------------------------------------------------------
@@ -328,4 +412,64 @@ class MekariQontakService
             ];
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Kirim Notifikasi Kode OTP Reset Password ke User (Meta Authentication)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Kirim pesan WhatsApp OTP menggunakan Template Authentication Meta.
+     *
+     * @param User   $user
+     * @param string $otpCode
+     * @return array{success: bool, message: string, data?: mixed}
+     */
+    public function sendOtpNotification(User $user, string $otpCode): array
+    {
+        $phone = $user->phone;
+        if (empty($phone)) {
+            return [
+                'success' => false,
+                'message' => 'Nomor WhatsApp pengguna belum terdaftar.',
+            ];
+        }
+
+        $formattedPhone = $this->formatPhoneNumber($phone);
+        if (empty($formattedPhone)) {
+            return [
+                'success' => false,
+                'message' => 'Format nomor WhatsApp pengguna tidak valid.',
+            ];
+        }
+
+        $templateId = $this->otpTemplateId ?: $this->templateId;
+        if (empty($templateId)) {
+            return [
+                'success' => false,
+                'message' => 'QONTAK_OTP_TEMPLATE_ID belum dikonfigurasi di .env.',
+            ];
+        }
+
+        // Parameter Meta Authentication (Copy Code / URL) Template
+        $parameters = [
+            'body' => [
+                ['key' => '1', 'value' => 'otp_code', 'value_text' => $otpCode],
+            ],
+            'buttons' => [
+                [
+                    'index' => '0',
+                    'type'  => 'url',
+                    'value' => $otpCode,
+                ],
+            ],
+        ];
+
+        return $this->sendWhatsAppTemplate(
+            toNumber:   $formattedPhone,
+            toName:     $user->name ?: $user->username,
+            parameters: $parameters,
+            templateId: $templateId,
+        );
+    }
 }
+

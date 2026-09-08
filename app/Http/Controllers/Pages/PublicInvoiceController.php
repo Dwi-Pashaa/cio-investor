@@ -92,8 +92,14 @@ class PublicInvoiceController extends Controller
             ->where('code', $transferCode)
             ->first();
 
-        if (!$transfer && preg_match('/^TRF-?(\d+)$/i', $transferCode, $matches)) {
+        if (!$transfer && preg_match('/^(?:INV-)?TRF-?(\d+)$/i', $transferCode, $matches)) {
             $transfer = Transfer::with(['investor.investor', 'admin'])->find($matches[1]);
+        }
+
+        if (!$transfer) {
+            $transfer = Transfer::with(['investor.investor', 'admin'])
+                ->where('code', 'like', "%{$transferCode}%")
+                ->first();
         }
 
         return $transfer;

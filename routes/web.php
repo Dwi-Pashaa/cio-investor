@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Pages\DashboardController;
 use App\Http\Controllers\Pages\InvestorController;
@@ -25,6 +26,16 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LoginController::class, 'index'])->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('post.login');
+
+// Reset Password Multi-Channel (Email & WhatsApp OTP)
+Route::get('/forgot-password', [ForgotPasswordController::class, 'showForgotForm'])->name('password.request');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendOtp'])->name('password.email');
+Route::get('/verify-otp', [ForgotPasswordController::class, 'showVerifyOtpForm'])->name('password.verify.form');
+Route::post('/verify-otp', [ForgotPasswordController::class, 'verifyOtp'])->name('password.verify');
+Route::post('/verify-otp/channel', [ForgotPasswordController::class, 'sendChannel'])->name('password.send.channel');
+Route::post('/resend-otp', [ForgotPasswordController::class, 'resendOtp'])->name('password.resend');
+Route::get('/reset-password', [ForgotPasswordController::class, 'showResetPasswordForm'])->name('password.reset');
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])->name('password.update');
 
 // Public Dividend Invoice (No login required, protected by cryptographic token)
 Route::get('/show-dividen', [PublicInvoiceController::class, 'showDividen'])->name('public.dividen.show');

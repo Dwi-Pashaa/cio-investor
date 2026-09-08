@@ -18,15 +18,27 @@ class SettingController extends Controller
     public function store(Request $request) 
     {
         $request->validate([
-            "telp" => "required|string"
+            "telp"                 => "required|string",
+            "notification_channel" => "required|in:whatsapp,email,both,none",
+            "admin_fee"            => "nullable",
+            "xendit_secret_key"    => "nullable|string",
+            "xendit_webhook_token" => "nullable|string",
         ]);
 
+        $adminFee = (float) str_replace('.', '', $request->admin_fee ?? 0);
+
         Setting::updateOrCreate(
-            [],
-            ["telp" => $request->telp]
+            ['id' => $request->id ?? 1],
+            [
+                "telp"                 => $request->telp,
+                "notification_channel" => $request->notification_channel,
+                "admin_fee"            => $adminFee,
+                "xendit_secret_key"    => $request->xendit_secret_key,
+                "xendit_webhook_token" => $request->xendit_webhook_token,
+            ]
         );
 
-        return back()->with('success', 'Berhasil menyimpan pengaturan kontak.');
+        return back()->with('success', 'Berhasil memperbarui pengaturan sistem.');
     }
 
     public function saveDashboardColumns(Request $request)
